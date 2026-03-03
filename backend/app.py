@@ -7,7 +7,11 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import os
 from datetime import datetime, timedelta
-from daily_scraper import start_daily_scraper
+
+# Lazy import to avoid issues during initialization
+def _get_start_daily_scraper():
+    from daily_scraper import start_daily_scraper
+    return start_daily_scraper
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -77,7 +81,11 @@ if __name__ == '__main__':
     # Start daily background scraping (runs every 12:00 AM local time)
     # Note: in production (Render), this still starts but GitHub Actions cron is more reliable
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-        start_daily_scraper(app)
+        try:
+            start_daily_scraper = _get_start_daily_scraper()
+            start_daily_scraper(app)
+        except Exception as e:
+            print(f"Warning: Failed to start daily scraper: {e}")
     
     # Run application
     # Made debug_mode and port configurable for deployment
