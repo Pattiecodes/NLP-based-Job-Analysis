@@ -1,18 +1,22 @@
 """
 Upload Routes - Handle file uploads and processing
 """
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
-from models import UploadHistory, db
+from sqlalchemy import func
+from models import UploadHistory, JobPosting, JobSkill, TrendingSkill, db
 from data_processor import process_uploaded_file, get_processor
 import os
 from datetime import datetime
 import PyPDF2
 import re
+from threading import Thread, Lock
 
 bp = Blueprint('upload', __name__, url_prefix='/api/upload')
 
 ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'pdf'}
+ACTIVE_UPLOADS = set()
+ACTIVE_UPLOADS_LOCK = Lock()
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -112,6 +116,153 @@ def parse_jobs_from_pdf_text(pdf_text):
     
     return jobs
 
+
+def _source_tag_for_upload(upload_id):
+    return f"upload_{upload_id}"
+
+
+def _reset_upload_data(source_tag):
+    """Delete previously processed rows for a specific upload source tag before retrying."""
+    existing_jobs = JobPosting.query.filter_by(data_source=source_tag).all()
+    if not existing_jobs:
+        return
+
+    job_ids = [job.id for job in existing_jobs]
+    if job_ids:
+        JobSkill.query.filter(JobSkill.job_id.in_(job_ids)).delete(synchronize_session=False)
+    JobPosting.query.filter(JobPosting.id.in_(job_ids)).delete(synchronize_session=False)
+    db.session.commit()
+
+
+def _rebuild_trending_skills_from_jobs():
+    """Rebuild trending skills from actual JobSkill records to avoid drift/duplicates."""
+    aggregated = db.session.query(
+        JobSkill.skill_name,
+        func.count(JobSkill.id).label('count')
+    ).group_by(JobSkill.skill_name).all()
+
+    TrendingSkill.query.delete(synchronize_session=False)
+    for skill_name, count in aggregated:
+        db.session.add(TrendingSkill(
+            skill_name=skill_name,
+            mention_count=int(count or 0),
+            is_technical=True,
+            category='General'
+        ))
+    db.session.commit()
+
+
+def _process_upload_in_background(flask_app, upload_id, filepath, file_type):
+    """Process uploaded file in background and update UploadHistory status."""
+    with ACTIVE_UPLOADS_LOCK:
+        ACTIVE_UPLOADS.add(upload_id)
+
+    with flask_app.app_context():
+        upload_record = UploadHistory.query.get(upload_id)
+        if not upload_record:
+            with ACTIVE_UPLOADS_LOCK:
+                ACTIVE_UPLOADS.discard(upload_id)
+            return
+
+        try:
+            source_tag = _source_tag_for_upload(upload_id)
+            _reset_upload_data(source_tag)
+
+            if file_type == 'csv':
+                stats = process_uploaded_file(filepath, source=source_tag)
+                _rebuild_trending_skills_from_jobs()
+                upload_record.status = 'completed'
+                upload_record.records_processed = stats.get('processed', 0)
+                upload_record.processed_at = datetime.now()
+                db.session.commit()
+                return
+
+            if file_type == 'pdf':
+                pdf_text = extract_text_from_pdf(filepath)
+                jobs = parse_jobs_from_pdf_text(pdf_text)
+
+                processor = get_processor()
+                processed_count = 0
+                skipped_count = 0
+
+                for job_data in jobs:
+                    result = processor.process_and_save_job(job_data, source=source_tag)
+                    if result:
+                        processed_count += 1
+                    else:
+                        skipped_count += 1
+
+                _rebuild_trending_skills_from_jobs()
+
+                upload_record.status = 'completed'
+                upload_record.records_processed = processed_count
+                upload_record.processed_at = datetime.now()
+                db.session.commit()
+                return
+
+            upload_record.status = 'pending'
+            upload_record.error_message = 'File type requires manual processing.'
+            db.session.commit()
+
+        except Exception as e:
+            upload_record.status = 'failed'
+            upload_record.error_message = str(e)
+            upload_record.processed_at = datetime.now()
+            db.session.commit()
+        finally:
+            with ACTIVE_UPLOADS_LOCK:
+                ACTIVE_UPLOADS.discard(upload_id)
+
+
+def _get_upload_filepath(filename):
+    upload_folder = current_app.config.get('UPLOAD_FOLDER', '../uploads')
+    if os.path.isabs(upload_folder):
+        base_folder = upload_folder
+    else:
+        base_folder = os.path.abspath(os.path.join(current_app.root_path, upload_folder))
+    os.makedirs(base_folder, exist_ok=True)
+    return os.path.join(base_folder, filename)
+
+
+def _start_background_processing(upload_record, filepath, file_type):
+    flask_app = current_app._get_current_object()
+    thread = Thread(
+        target=_process_upload_in_background,
+        args=(flask_app, upload_record.id, filepath, file_type),
+        daemon=True
+    )
+    thread.start()
+
+
+def _recover_stuck_uploads():
+    """Requeue csv/pdf uploads that are still pending/processing and not currently active."""
+    candidates = UploadHistory.query.filter(
+        UploadHistory.status.in_(['pending', 'processing']),
+        UploadHistory.file_type.in_(['csv', 'pdf'])
+    ).all()
+
+    requeued = 0
+    for upload in candidates:
+        with ACTIVE_UPLOADS_LOCK:
+            if upload.id in ACTIVE_UPLOADS:
+                continue
+
+        filepath = _get_upload_filepath(upload.filename)
+        if not os.path.exists(filepath):
+            upload.status = 'failed'
+            upload.error_message = f"Uploaded file not found: {upload.filename}"
+            upload.processed_at = datetime.now()
+            db.session.commit()
+            continue
+
+        upload.status = 'processing'
+        upload.error_message = None
+        db.session.commit()
+        _start_background_processing(upload, filepath, upload.file_type)
+        requeued += 1
+
+    return requeued
+
 @bp.route('/file', methods=['POST'])
 def upload_file():
     """Upload a new data file (CSV, Excel, or PDF)"""
@@ -134,9 +285,7 @@ def upload_file():
         unique_filename = f"{timestamp}_{filename}"
         
         # Save file
-        upload_folder = '../uploads'
-        os.makedirs(upload_folder, exist_ok=True)
-        filepath = os.path.join(upload_folder, unique_filename)
+        filepath = _get_upload_filepath(unique_filename)
         file.save(filepath)
         
         # Get file size
@@ -153,89 +302,21 @@ def upload_file():
         db.session.add(upload_record)
         db.session.commit()
         
-        # Process file through NLP and ML pipeline
-        if file_type == 'csv':
-            try:
-                stats = process_uploaded_file(filepath, source='upload')
-                
-                # Update upload record
-                upload_record.status = 'completed'
-                upload_record.records_processed = stats.get('processed', 0)
-                upload_record.processed_at = datetime.now()
-                db.session.commit()
-                
-                return jsonify({
-                    'message': 'File uploaded and processed successfully',
-                    'upload_id': upload_record.id,
-                    'filename': unique_filename,
-                    'status': 'completed',
-                    'stats': stats
-                }), 201
-                
-            except Exception as e:
-                upload_record.status = 'failed'
-                upload_record.error_message = str(e)
-                db.session.commit()
-                
-                return jsonify({
-                    'error': f'Processing failed: {str(e)}',
-                    'upload_id': upload_record.id
-                }), 500
-        
-        elif file_type == 'pdf':
-            # Process PDF through NLP pipeline
-            try:
-                # Extract text from PDF
-                pdf_text = extract_text_from_pdf(filepath)
-                
-                # Parse jobs from PDF text
-                jobs = parse_jobs_from_pdf_text(pdf_text)
-                
-                # Process each job through NLP pipeline
-                processor = get_processor()
-                processed_count = 0
-                skipped_count = 0
-                
-                for job_data in jobs:
-                    result = processor.process_and_save_job(job_data, source='pdf_upload')
-                    if result:
-                        processed_count += 1
-                    else:
-                        skipped_count += 1
-                
-                # Update upload record
-                upload_record.status = 'completed'
-                upload_record.records_processed = processed_count
-                upload_record.processed_at = datetime.now()
-                db.session.commit()
-                
-                stats = {
-                    'total': len(jobs),
-                    'processed': processed_count,
-                    'skipped': skipped_count,
-                    'status': 'success'
-                }
-                
-                return jsonify({
-                    'message': f'PDF uploaded and processed. Extracted {len(jobs)} job postings through NLP.',
-                    'upload_id': upload_record.id,
-                    'filename': unique_filename,
-                    'status': 'completed',
-                    'stats': stats
-                }), 201
-                
-            except Exception as e:
-                upload_record.status = 'failed'
-                upload_record.error_message = str(e)
-                db.session.commit()
-                
-                return jsonify({
-                    'error': f'PDF processing failed: {str(e)}',
-                    'upload_id': upload_record.id
-                }), 500
-        
+        # Process CSV/PDF asynchronously to avoid request timeout on large uploads
+        if file_type in {'csv', 'pdf'}:
+            _start_background_processing(upload_record, filepath, file_type)
+
+            return jsonify({
+                'message': 'File uploaded. NLP processing started in background.',
+                'upload_id': upload_record.id,
+                'filename': unique_filename,
+                'status': 'processing'
+            }), 202
+
         else:
             # For Excel files, mark as pending for manual processing
+            upload_record.status = 'pending'
+            db.session.commit()
             return jsonify({
                 'message': 'File uploaded successfully. Excel files require manual processing.',
                 'upload_id': upload_record.id,
@@ -249,6 +330,8 @@ def upload_file():
 @bp.route('/history', methods=['GET'])
 def get_upload_history():
     """Get upload history"""
+    _recover_stuck_uploads()
+
     uploads = UploadHistory.query\
         .order_by(UploadHistory.uploaded_at.desc())\
         .limit(50)\

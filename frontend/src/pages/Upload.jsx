@@ -12,6 +12,22 @@ function Upload() {
   useEffect(() => {
     fetchUploadHistory()
   }, [])
+
+  useEffect(() => {
+    const hasActiveUploads = uploadHistory.some((upload) =>
+      ['processing', 'pending'].includes(upload.status)
+    )
+
+    if (!hasActiveUploads) {
+      return
+    }
+
+    const intervalId = setInterval(() => {
+      fetchUploadHistory()
+    }, 5000)
+
+    return () => clearInterval(intervalId)
+  }, [uploadHistory])
   
   const fetchUploadHistory = async () => {
     try {
@@ -55,14 +71,19 @@ function Upload() {
           'Content-Type': 'multipart/form-data'
         }
       })
-      
-      setMessage({ type: 'success', text: `File uploaded successfully! Processing started.` })
+
+      const returnedStatus = response.data?.status || 'processing'
+      if (returnedStatus === 'processing') {
+        setMessage({ type: 'success', text: 'File uploaded. Processing in background. Dashboard updates after status becomes completed.' })
+      } else if (returnedStatus === 'completed') {
+        setMessage({ type: 'success', text: 'File uploaded and processed successfully. Dashboard data is now updated.' })
+      } else {
+        setMessage({ type: 'success', text: 'File uploaded successfully.' })
+      }
       setFile(null)
       
       // Refresh upload history
-      setTimeout(() => {
-        fetchUploadHistory()
-      }, 1000)
+      fetchUploadHistory()
       
     } catch (error) {
       setMessage({ 
@@ -170,6 +191,7 @@ function Upload() {
               <thead>
                 <tr>
                   <th>Status</th>
+                  <th>State</th>
                   <th>Filename</th>
                   <th>Type</th>
                   <th>Size</th>
@@ -181,6 +203,7 @@ function Upload() {
                 {uploadHistory.map(upload => (
                   <tr key={upload.id}>
                     <td>{getStatusIcon(upload.status)}</td>
+                    <td>{(upload.status || '-').toUpperCase()}</td>
                     <td>{upload.filename}</td>
                     <td>{upload.file_type?.toUpperCase()}</td>
                     <td>{formatFileSize(upload.file_size)}</td>

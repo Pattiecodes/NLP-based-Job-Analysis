@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 import pickle
 import os
+import hashlib
 
 from models import db, JobPosting, JobSkill, TrendingSkill
 from nlp_categorizer import get_categorizer
@@ -107,6 +108,19 @@ class DataProcessor:
         try:
             # Check if job already exists
             job_link = job_data.get('job_link', '')
+
+            # Build deterministic fallback link when source data has no stable URL.
+            # This prevents duplicates when uploads are retried/recovered.
+            if not job_link:
+                title = str(job_data.get('job_title', '')).strip().lower()
+                company = str(job_data.get('company', '')).strip().lower()
+                location = str(job_data.get('job_location', '')).strip().lower()
+                summary = str(job_data.get('job_summary', '')).strip().lower()[:300]
+                fingerprint = f"{title}|{company}|{location}|{summary}"
+                if fingerprint.replace('|', '').strip():
+                    hash_value = hashlib.sha1(fingerprint.encode('utf-8')).hexdigest()
+                    job_link = f"derived_{hash_value}"
+
             if job_link:
                 existing = JobPosting.query.filter_by(job_link=job_link).first()
                 if existing:

@@ -62,7 +62,18 @@ function Download() {
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error('Error downloading file:', error);
-      alert('Failed to download file. Please try again.');
+      let message = 'Failed to download file. Please try again.';
+      if (error.response?.data instanceof Blob) {
+        try {
+          const errorText = await error.response.data.text();
+          const parsed = JSON.parse(errorText);
+          if (parsed?.error) {
+            message = parsed.error;
+          }
+        } catch (_) {
+        }
+      }
+      alert(message);
     } finally {
       setDownloading(null);
     }

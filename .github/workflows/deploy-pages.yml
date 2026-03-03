@@ -30,7 +30,7 @@ jobs:
         working-directory: frontend
         run: npm run build -- --mode github
         env:
-          VITE_API_URL: ${{ secrets.RENDER_API_URL }}
+          VITE_API_BASE_URL: ${{ secrets.RENDER_API_URL }}
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

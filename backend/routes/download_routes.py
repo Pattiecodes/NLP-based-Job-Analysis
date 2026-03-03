@@ -1,9 +1,26 @@
-from flask import Blueprint, send_file, make_response
+from flask import Blueprint, make_response
 import csv
 import io
-from models import db, JobPosting, TrendingSkill, AnalysisResult
+from sqlalchemy import func
+from models import db, JobPosting, JobSkill, TrendingSkill, AnalysisResult
 
 download_routes = Blueprint('download_routes', __name__)
+
+
+def _format_date(value):
+    if not value:
+        return ''
+    if hasattr(value, 'strftime'):
+        return value.strftime('%Y-%m-%d')
+    return str(value)
+
+
+def _format_datetime(value):
+    if not value:
+        return ''
+    if hasattr(value, 'strftime'):
+        return value.strftime('%Y-%m-%d %H:%M:%S')
+    return str(value)
 
 @download_routes.route('/api/download/jobs', methods=['GET'])
 def download_jobs():
@@ -32,7 +49,7 @@ def download_jobs():
                 job.job_type or '',
                 job.job_category or '',
                 job.data_source or '',
-                job.posted_date.strftime('%Y-%m-%d') if job.posted_date else ''
+                _format_date(job.posted_date)
             ])
         
         # Create response
@@ -96,10 +113,37 @@ def download_skills():
 def download_analysis():
     """Download NLP-processed job analysis results as CSV"""
     try:
-        # Get all jobs with their NLP analysis results
-        jobs = JobPosting.query.all()
-        
-        if not jobs:
+        # Get all jobs with NLP analysis fields + aggregated extracted skill count
+        rows = db.session.query(
+            JobPosting.id,
+            JobPosting.job_title,
+            JobPosting.company,
+            JobPosting.job_location,
+            JobPosting.job_category,
+            JobPosting.job_type,
+            JobPosting.job_level,
+            JobPosting.data_source,
+            JobPosting.cluster_id,
+            JobPosting.posted_date,
+            JobPosting.scraped_at,
+            func.count(JobSkill.id).label('skill_count')
+        ).outerjoin(
+            JobSkill, JobSkill.job_id == JobPosting.id
+        ).group_by(
+            JobPosting.id,
+            JobPosting.job_title,
+            JobPosting.company,
+            JobPosting.job_location,
+            JobPosting.job_category,
+            JobPosting.job_type,
+            JobPosting.job_level,
+            JobPosting.data_source,
+            JobPosting.cluster_id,
+            JobPosting.posted_date,
+            JobPosting.scraped_at
+        ).all()
+
+        if not rows:
             return {'error': 'No analysis results found'}, 404
         
         # Create CSV in memory
@@ -115,22 +159,20 @@ def download_analysis():
         ])
         
         # Write data - showing NLP analysis results
-        for job in jobs:
-            skill_count = len(job.skills) if job.skills else 0
-            
+        for row in rows:
             writer.writerow([
-                job.id,
-                job.job_title or '',
-                job.company or '',
-                job.job_location or '',
-                job.job_category or 'Uncategorized',  # NLP categorization
-                job.job_type or '',
-                job.job_level or '',
-                job.data_source or '',
-                job.cluster_id if job.cluster_id is not None else 'N/A',
-                job.posted_date.strftime('%Y-%m-%d') if job.posted_date else '',
-                job.scraped_at.strftime('%Y-%m-%d %H:%M:%S') if job.scraped_at else '',
-                skill_count  # Number of skills extracted by NLP
+                row.id,
+                row.job_title or '',
+                row.company or '',
+                row.job_location or '',
+                row.job_category or 'Uncategorized',
+                row.job_type or '',
+                row.job_level or '',
+                row.data_source or '',
+                row.cluster_id if row.cluster_id is not None else 'N/A',
+                _format_date(row.posted_date),
+                _format_datetime(row.scraped_at),
+                int(row.skill_count or 0)
             ])
         
         # Create response
