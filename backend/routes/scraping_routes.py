@@ -67,13 +67,15 @@ def get_latest_news():
 def trigger_job_scraping():
     """Trigger job posting scraping with NLP processing"""
     try:
-        # Added CRON_SECRET auth to prevent random people from spamming scrape endpoint
-        # GitHub Actions will include this header when triggered via cron
+        # CRON_SECRET auth only required for scheduled GitHub Actions requests
+        # Frontend requests are allowed without auth
         cron_secret = os.getenv('CRON_SECRET')
-        if cron_secret:
-            provided_secret = request.headers.get('X-Cron-Secret') or request.args.get('cron_secret')
-            if provided_secret != cron_secret:
-                return jsonify({'error': 'Unauthorized'}), 401
+        provided_secret = request.headers.get('X-Cron-Secret') or request.args.get('cron_secret')
+        
+        # If CRON_SECRET is set AND a secret was provided, verify it (for GitHub Actions)
+        # If CRON_SECRET is set but no secret provided, allow it (frontend request)
+        if cron_secret and provided_secret and provided_secret != cron_secret:
+            return jsonify({'error': 'Unauthorized'}), 401
 
         # Extract query params from request JSON
         query = request.json.get('query', 'software engineer') if request.json else 'software engineer'
