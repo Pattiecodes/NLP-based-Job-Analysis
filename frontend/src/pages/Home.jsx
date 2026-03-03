@@ -112,10 +112,10 @@ function Home() {
         <div className="home-card explore-card">
           <h2>Explore</h2>
           <div className="chart-info">
-            <div className="chart-title">CHART TITLE</div>
-            <div className="chart-value">{stats?.total_jobs?.toLocaleString() || '5,000.00'}</div>
+            <div className="chart-title">TOP IN-DEMAND SKILLS</div>
+            <div className="chart-value">{chartData.length}</div>
             <div className="chart-caption">
-              {chartData.length} Orders
+              Most Trending Skills ({chartData.length} trending)
             </div>
           </div>
           
@@ -129,7 +129,7 @@ function Home() {
                 textAnchor="end"
                 height={60}
               />
-              <YAxis tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} label={{ value: 'Job Count', angle: -90, position: 'insideLeft' }} />
               <Tooltip />
               <Line 
                 type="monotone" 
@@ -137,16 +137,7 @@ function Home() {
                 stroke="#0088FE" 
                 strokeWidth={2}
                 dot={{ fill: '#0088FE', r: 4 }}
-                name="Count"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#00C49F" 
-                strokeWidth={2}
-                dot={{ fill: '#00C49F', r: 4 }}
-                name="Trend"
-                strokeDasharray="5 5"
+                name="Jobs with Skill"
               />
             </LineChart>
           </ResponsiveContainer>
@@ -154,17 +145,12 @@ function Home() {
           <div className="chart-legend">
             <div className="legend-item">
               <span className="legend-dot" style={{ background: '#0088FE' }}></span>
-              <span>Current</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot" style={{ background: '#00C49F' }}></span>
-              <span>Current</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot" style={{ background: '#FFBB28' }}></span>
-              <span>Current</span>
+              <span>Current Market Demand</span>
             </div>
           </div>
+          <p style={{ fontSize: '12px', color: '#666', marginTop: '10px', textAlign: 'center' }}>
+            Based on {stats?.total_jobs?.toLocaleString() || '1,000'} job postings analyzed
+          </p>
         </div>
       </div>
     </div>

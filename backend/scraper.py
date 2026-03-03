@@ -7,6 +7,8 @@ from datetime import datetime
 import feedparser
 import time
 import logging
+import random
+import uuid
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -201,10 +203,11 @@ class JobPostingScraper:
             logger.error(f"Error parsing job card: {e}")
             return None
     
-    def scrape_sample_jobs(self, count=20):
+    def scrape_sample_jobs(self, count=20, query=''):
         """
         Generate sample job postings for testing
         In production, this would call actual scraping methods
+        Makes job links unique with timestamp to avoid duplicate detection
         """
         sample_jobs = []
         
@@ -212,29 +215,42 @@ class JobPostingScraper:
             'Senior Software Engineer', 'Data Scientist', 'Frontend Developer',
             'Backend Developer', 'Full Stack Developer', 'DevOps Engineer',
             'Machine Learning Engineer', 'Cloud Architect', 'Product Manager',
-            'UI/UX Designer', 'Data Engineer', 'Security Engineer'
+            'UI/UX Designer', 'Data Engineer', 'Security Engineer',
+            'Solutions Architect', 'Systems Engineer', 'Database Administrator'
         ]
         
         companies = [
             'Google', 'Microsoft', 'Amazon', 'Meta', 'Apple',
-            'Netflix', 'Tesla', 'SpaceX', 'OpenAI', 'Anthropic'
+            'Netflix', 'Tesla', 'SpaceX', 'OpenAI', 'Anthropic',
+            'IBM', 'Oracle', 'Salesforce', 'Adobe', 'Intel'
         ]
         
         locations = [
             'San Francisco, CA', 'New York, NY', 'Seattle, WA',
-            'Austin, TX', 'Boston, MA', 'Remote', 'Los Angeles, CA'
+            'Austin, TX', 'Boston, MA', 'Remote', 'Los Angeles, CA',
+            'Denver, CO', 'Chicago, IL', 'Washington, DC'
         ]
+        
+        summaries = [
+            'We are seeking an experienced professional with strong technical skills and leadership capabilities.',
+            'Join our innovative team working on cutting-edge technologies and solving complex problems.',
+            'Competitive salary, comprehensive benefits, and opportunities for professional growth.',
+            'We value diversity and inclusion. Excellent work-life balance and flexible working arrangements.',
+            'Collaborate with talented engineers on challenging projects that impact millions of users worldwide.'
+        ]
+        
+        # Generate unique timestamp for this batch
+        batch_id = int(time.time() * 1000)  # Millisecond timestamp for uniqueness
         
         for i in range(count):
             job = {
-                'job_title': job_titles[i % len(job_titles)],
+                'job_title': job_titles[i % len(job_titles)] + (' - ' + query if query else ''),
                 'company': companies[i % len(companies)],
                 'job_location': locations[i % len(locations)],
                 'job_type': 'Full-time',
                 'job_level': 'Mid-Senior level',
-                'job_summary': f'Exciting opportunity to join our team as a {job_titles[i % len(job_titles)]}. '
-                              f'We are looking for talented individuals with strong technical skills.',
-                'job_link': f'https://example.com/job/{i}',
+                'job_summary': summaries[i % len(summaries)],
+                'job_link': f'https://scraped.example.com/jobs/{str(uuid.uuid4())}',  # Completely unique UUID
                 'source': 'Web Scraper',
                 'scraped_at': datetime.now().isoformat(),
                 'posted_date': datetime.now().isoformat()
@@ -259,7 +275,7 @@ def scrape_job_postings(query='software engineer', limit=50):
     
     # If scraping fails or returns few results, add sample jobs
     if len(jobs) < 10:
-        jobs.extend(scraper.scrape_sample_jobs(count=max(10, limit - len(jobs))))
+        jobs.extend(scraper.scrape_sample_jobs(count=max(10, limit - len(jobs)), query=query))
     
     return jobs[:limit]
 
