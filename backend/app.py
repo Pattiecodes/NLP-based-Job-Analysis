@@ -88,7 +88,8 @@ def seed_data():
                 job_description=str(row.get('job_description', ''))[:5000],  # Limit description
                 salary_range=str(row.get('salary_range', '')),
                 required_skills=str(row.get('required_skills', '')),
-                category=str(row.get('category', 'Other')),
+                job_category=str(row.get('category', 'Other')),  # Use correct field name
+                job_type=str(row.get('job_type', 'Full-time')),  
                 data_source='upload',
                 scraped_date=datetime.utcnow()
             )
