@@ -9,8 +9,16 @@ on:
 jobs:
   trigger-scrape:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        job_query:
+          - 'software engineer'
+          - 'data scientist'
+          - 'nurse'
+          - 'teacher'
+          - 'accountant'
     steps:
-      - name: Trigger backend scraping endpoint
+      - name: Trigger backend scraping endpoint for ${{ matrix.job_query }}
         env:
           SCRAPE_API_URL: ${{ secrets.SCRAPE_API_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -23,4 +31,5 @@ jobs:
           curl -sS -X POST "$SCRAPE_API_URL/api/scraping/jobs/trigger" \
             -H "Content-Type: application/json" \
             -H "X-Cron-Secret: $CRON_SECRET" \
-            -d '{"query":"software engineer","limit":100,"source":"scheduler"}'
+            -d '{"query":"${{ matrix.job_query }}","limit":100,"source":"scheduler"}' \ 
+            || echo "Failed to scrape ${{ matrix.job_query }}"
