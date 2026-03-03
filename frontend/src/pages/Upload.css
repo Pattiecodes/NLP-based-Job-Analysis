@@ -1,0 +1,183 @@
+.upload-page h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.upload-section {
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 3rem;
+}
+
+.upload-box {
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  padding: 3rem;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.upload-box:hover {
+  border-color: var(--primary-color);
+  background: rgba(0, 136, 254, 0.02);
+}
+
+.upload-icon {
+  font-size: 4rem;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.upload-box h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.file-input-label {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 1rem 0;
+  transition: background 0.3s;
+}
+
+.file-input-label:hover {
+  background: #006bd6;
+}
+
+.file-info {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+.selected-file {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgba(0, 136, 254, 0.05);
+  border-radius: 8px;
+  margin-top: 1.5rem;
+}
+
+.file-icon {
+  font-size: 2rem;
+  color: var(--primary-color);
+}
+
+.file-details {
+  flex: 1;
+}
+
+.file-name {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.file-size {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.upload-button {
+  padding: 0.75rem 2rem;
+  background: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.upload-button:hover:not(:disabled) {
+  background: #00a87e;
+}
+
+.upload-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.message {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  font-weight: 500;
+}
+
+.message.success {
+  background: rgba(0, 196, 159, 0.1);
+  color: var(--secondary-color);
+}
+
+.message.error {
+  background: rgba(255, 128, 66, 0.1);
+  color: var(--danger-color);
+}
+
+.history-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.no-data {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+}
+
+.history-table {
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.history-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th {
+  background: var(--bg-color);
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}
+
+.history-table td {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.status-icon {
+  font-size: 1.25rem;
+}
+
+.status-icon.success {
+  color: var(--secondary-color);
+}
+
+.status-icon.error {
+  color: var(--danger-color);
+}
+
+.status-icon.processing,
+.status-icon.pending {
+  color: var(--accent-color);
+}
