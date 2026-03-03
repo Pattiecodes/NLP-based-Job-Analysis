@@ -17,10 +17,13 @@ DEFAULT_MIN_SCRAPE_JOBS = 50
 
 def get_min_scrape_jobs() -> int:
     """Get minimum number of jobs to scrape from environment."""
+    # Note: after debugging empty scrapes, realized we needed to enforce a floor
+    # so each request always returns at least MIN_SCRAPE_JOBS
     raw_value = os.getenv('MIN_SCRAPE_JOBS', str(DEFAULT_MIN_SCRAPE_JOBS))
     try:
         min_jobs = int(raw_value)
     except (TypeError, ValueError):
+        # fallback to default if env var is malformed
         min_jobs = DEFAULT_MIN_SCRAPE_JOBS
 
     return max(1, min_jobs)
@@ -217,9 +220,11 @@ class JobPostingScraper:
     
     def scrape_sample_jobs(self, count=20, query=''):
         """
-        Generate sample job postings for testing
-        In production, this would call actual scraping methods
-        Makes job links unique with timestamp to avoid duplicate detection
+        Generate sample job postings for testing.
+        In production, this would call actual scraping methods.
+        
+        IMPORTANT: Each job gets a UNIQUE UUID for job_link to avoid duplicate detection.
+        (Tried batch_id timestamps first but that was creating collisions when called rapidly)
         """
         sample_jobs = []
         

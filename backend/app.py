@@ -12,6 +12,8 @@ from daily_scraper import start_daily_scraper
 # Initialize Flask app
 app = Flask(__name__)
 
+# Configure CORS with dynamic allowed origins from environment
+# (was hardcoded to localhost, broke when deploying to Render)
 frontend_origins = os.getenv('FRONTEND_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000')
 allowed_origins = [origin.strip() for origin in frontend_origins.split(',') if origin.strip()]
 CORS(app, supports_credentials=True, origins=allowed_origins)
@@ -73,10 +75,12 @@ if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
     # Start daily background scraping (runs every 12:00 AM local time)
+    # Note: in production (Render), this still starts but GitHub Actions cron is more reliable
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         start_daily_scraper(app)
     
     # Run application
+    # Made debug_mode and port configurable for deployment
     debug_mode = os.getenv('FLASK_ENV', 'development') == 'development'
     port = int(os.getenv('PORT', '5000'))
     app.run(debug=debug_mode, host='0.0.0.0', port=port)

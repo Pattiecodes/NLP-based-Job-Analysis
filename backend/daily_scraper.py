@@ -46,6 +46,8 @@ def _save_news_articles(news_articles):
 
 
 def _run_daily_scrape(app):
+    # Background thread that runs job scraping at midnight
+    # (In production, GitHub Actions cron is more reliable so this is backup)
     logger.info('Daily scraper started. Waiting for next 12:00 AM run...')
 
     while not _stop_event.is_set():
