@@ -29,11 +29,23 @@ def get_top_skills():
     """Get top trending skills"""
     limit = 50
     
+    # Words to exclude from trending skills
+    exclude_words = {
+        'benefits', 'compensation', 'employee', 'employees', 'experience',
+        'team', 'leadership', 'management', 'ability', 'skills', 'skill',
+        'training', 'knowledge', 'understanding', 'background',
+        'degree', 'certificate', 'certification', 'years', 'year',
+        'required', 'preferred', 'strong', 'excellent', 'good'
+    }
+    
     # Try to get from database first
-    skills = TrendingSkill.query\
+    all_skills = TrendingSkill.query\
         .order_by(TrendingSkill.mention_count.desc())\
-        .limit(limit)\
+        .limit(200)\
         .all()
+    
+    # Filter out meaningless words
+    skills = [s for s in all_skills if s.skill_name.lower() not in exclude_words][:limit]
     
     if skills:
         # Format for frontend charts (expects "Skill" and "Count" keys)
