@@ -63,9 +63,9 @@ def health_check():
 # Temporary data seeding endpoint (delete after use)
 @app.route('/api/seed-data', methods=['POST'])
 def seed_data():
-    """Seed database with existing analysis data - TEMPORARY FOR SETUP"""
+    """Seed database with existing dataset"""
     try:
-        from models import JobPosting, TrendingSkill
+        from models import TrendingSkill, JobPosting
         import pandas as pd
         
         # Load trending skills
@@ -78,24 +78,26 @@ def seed_data():
             )
             db.session.add(skill)
         
-        # Load processed jobs (limit to 500 for speed)
-        jobs_df = pd.read_csv('output/processed_jobs.csv').head(500)
+        # Load processed jobs (first 200 to avoid timeout)
+        jobs_df = pd.read_csv('output/processed_jobs.csv', nrows=200)
         for _, row in jobs_df.iterrows():
             job = JobPosting(
-                job_title=row.get('job_title', 'Unknown'),
-                company=row.get('company', 'Unknown'),
-                job_location=row.get('job_location', ''),
-                job_description=row.get('job_description', ''),
-                salary_range=row.get('salary_range', ''),
-                required_skills=row.get('required_skills', ''),
-                category=row.get('category', 'Other'),
+                job_title=str(row.get('job_title', 'Unknown')),
+                company=str(row.get('company', 'Unknown')),
+                job_location=str(row.get('job_location', '')),
+                job_description=str(row.get('job_description', ''))[:5000],  # Limit description
+                salary_range=str(row.get('salary_range', '')),
+                required_skills=str(row.get('required_skills', '')),
+                category=str(row.get('category', 'Other')),
+                data_source='upload',
                 scraped_date=datetime.utcnow()
             )
             db.session.add(job)
         
         db.session.commit()
         return jsonify({
-            'message': 'Data seeded successfully!',
+            'status': 'success',
+            'message': 'Dataset loaded successfully!',
             'skills_loaded': len(top_skills_df),
             'jobs_loaded': len(jobs_df)
         }), 201
