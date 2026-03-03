@@ -69,13 +69,14 @@ function Dashboard() {
         limit: 100
       })
       
-      setScrapeMessage(`✓ Success! ${response.data.message}`)
+      setScrapeMessage(`✓ Success! ${response.data.message}. Updating dashboard...`)
       
-      // Refresh dashboard data after scraping
-      setTimeout(() => {
-        fetchDashboardData()
-        setScrapeMessage('')
-      }, 2000)
+      // Wait longer for backend to finish processing and update database
+      // Then refresh dashboard data
+      await new Promise(resolve => setTimeout(resolve, 5000))
+      
+      await fetchDashboardData()
+      setScrapeMessage('')
     } catch (error) {
       console.error('Error scraping jobs:', error)
       setScrapeError(`✗ Error: ${error.response?.data?.error || error.message}`)
