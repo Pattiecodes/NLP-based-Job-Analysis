@@ -269,7 +269,7 @@ class JobCategorizer:
     
     def extract_skills(self, text: str) -> List[str]:
         """
-        Extract skills from job text using NLP
+        Extract skills from job text using NLP - covers all industries
         
         Args:
             text: Job title and description
@@ -277,22 +277,88 @@ class JobCategorizer:
         Returns:
             List of extracted skills
         """
-        # Common tech skills to look for
+        # Skills across all industries and job categories
         common_skills = [
+            # Tech & Programming
             'python', 'java', 'javascript', 'typescript', 'c++', 'c#',
             'ruby', 'go', 'rust', 'swift', 'kotlin', 'scala',
             'react', 'angular', 'vue', 'node.js', 'django', 'flask',
-            'spring', 'express', 'fastapi',
+            'spring', 'express', 'fastapi', 'rest api', 'graphql',
             'sql', 'postgresql', 'mysql', 'mongodb', 'redis',
             'aws', 'azure', 'gcp', 'docker', 'kubernetes',
             'git', 'ci/cd', 'jenkins', 'terraform',
             'machine learning', 'deep learning', 'nlp', 'computer vision',
             'tensorflow', 'pytorch', 'scikit-learn',
             'pandas', 'numpy', 'matplotlib',
-            'rest api', 'graphql', 'microservices',
-            'agile', 'scrum', 'jira',
+            'microservices', 'agile', 'scrum', 'jira',
             'html', 'css', 'sass', 'webpack',
-            'excel', 'tableau', 'power bi', 'looker'
+            'excel', 'tableau', 'power bi', 'looker',
+            
+            # Healthcare & Nursing
+            'patient care', 'clinical', 'nursing', 'rn', 'bsn',
+            'emt', 'paramedic', 'medical coding', 'healthcare',
+            'phlebotomy', 'iv therapy', 'wound care', 'catheter',
+            'electronic health records', 'ehr', 'hipaa', 'bedside',
+            'triage', 'vital signs', 'medication management',
+            'patient assessment', 'care planning', 'clinical skills',
+            
+            # Education & Training
+            'teaching', 'curriculum', 'lesson planning', 'assessment',
+            'classroom management', 'student engagement', 'tutoring',
+            'educational technology', 'differentiation', 'special education',
+            'first aid', 'cpr', 'training delivery',
+            
+            # Finance & Accounting
+            'accounting', 'gaap', 'tax', 'audit', 'bookkeeping',
+            'quickbooks', 'sap', 'financial analysis', 'budgeting',
+            'accounts payable', 'accounts receivable', 'payroll',
+            'financial reporting', 'excel', 'data analysis',
+            
+            # Construction & Trades
+            'carpentry', 'welding', 'electrical', 'plumbing', 'hvac',
+            'equipment operation', 'heavy machinery', 'blueprint reading',
+            'safety compliance', 'osha', 'construction', 'tool operation',
+            'project management', 'site supervision', 'quality control',
+            
+            # Hospitality & Food Service
+            'food safety', 'culinary', 'kitchen management', 'food preparation',
+            'customer service', 'point of sale', 'pos', 'cash handling',
+            'housekeeping', 'hospitality', 'reservation system',
+            'menu design', 'beverage service', 'bartending',
+            
+            # Sales & Customer Service
+            'sales', 'customer service', 'communication', 'negotiation',
+            'crm', 'salesforce', 'lead generation', 'closing deals',
+            'account management', 'customer retention', 'problem solving',
+            'conflict resolution', 'relationship building',
+            
+            # Transportation & Logistics
+            'cdl', 'commercial driving', 'logistics', 'warehouse management',
+            'forklift', 'inventory management', 'shipping', 'receiving',
+            'route planning', 'supply chain', 'hazmat',
+            'gps', 'delivery', 'fleet management',
+            
+            # Manufacturing & Operations
+            'assembly', 'quality assurance', 'lean manufacturing',
+            'machinery operation', 'production planning', 'maintenance',
+            'safety procedures', 'blueprint reading', 'molding',
+            'cnc', 'welding', 'fabrication', 'assembly line',
+            
+            # Marketing & Communications
+            'marketing', 'branding', 'seo', 'content marketing',
+            'social media', 'copywriting', 'analytics', 'google analytics',
+            'email marketing', 'digital marketing', 'advertising',
+            'campaign management', 'public relations', 'presentation skills',
+            
+            # Human Resources
+            'recruiting', 'talent management', 'compensation', 'benefits',
+            'employee relations', 'payroll', 'training', 'hr systems',
+            'compliance', 'employee engagement', 'onboarding',
+            
+            # Legal & Compliance
+            'legal research', 'contract law', 'compliance', 'document review',
+            'legal writing', 'paralegal', 'litigation support',
+            'regulatory knowledge', 'contract drafting'
         ]
         
         text_lower = text.lower()
