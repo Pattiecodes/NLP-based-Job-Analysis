@@ -85,7 +85,12 @@ function Dashboard() {
     }
   }
   
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d']
+  const COLORS = [
+    '#0088FE', '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+    '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52C41A', '#FF7A45',
+    '#B37FEB', '#36CFC7', '#FAAD14', '#F5222D', '#1890FF', '#2F5233',
+    '#EB2F96', '#722ED1', '#13C2C2', '#FA8C16', '#52C41A', '#1890FF'
+  ]
   
   if (loading) {
     return <div className="loading">Loading dashboard...</div>
