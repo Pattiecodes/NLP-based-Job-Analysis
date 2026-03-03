@@ -16,6 +16,22 @@ function Dashboard() {
   const [scraping, setScraping] = useState(false)
   const [scrapeMessage, setScrapeMessage] = useState('')
   const [scrapeError, setScrapeError] = useState('')
+  const [jobQuery, setJobQuery] = useState('software engineer')
+  
+  const jobCategories = [
+    'Software Engineer',
+    'Data Scientist',
+    'Nurse',
+    'Teacher',
+    'Accountant',
+    'Carpenter',
+    'Chef',
+    'Truck Driver',
+    'Customer Service',
+    'Marketing Manager',
+    'Electrician',
+    'Lawyer'
+  ]
   
   useEffect(() => {
     fetchDashboardData()
@@ -46,10 +62,10 @@ function Dashboard() {
     try {
       setScraping(true)
       setScrapeError('')
-      setScrapeMessage('Scraping jobs, this may take a few minutes...')
+      setScrapeMessage(`Scraping ${jobQuery} jobs, this may take a few minutes...`)
       
       const response = await axios.post('/api/scraping/jobs/trigger', {
-        query: 'software engineer',
+        query: jobQuery,
         limit: 100
       })
       
@@ -78,13 +94,38 @@ function Dashboard() {
     <div className="dashboard">
       <div className="dashboard-header">
         <h1>Dashboard Overview</h1>
-        <button 
-          onClick={triggerJobScraping}
-          disabled={scraping}
-          className="scrape-button"
-        >
-          {scraping ? '⏳ Scraping...' : '🔄 Scrape New Jobs'}
-        </button>
+        <div className="scrape-controls">
+          <select 
+            value={jobQuery} 
+            onChange={(e) => setJobQuery(e.target.value)}
+            disabled={scraping}
+            className="job-selector"
+          >
+            {jobCategories.map((category) => (
+              <option key={category} value={category.toLowerCase()}>
+                {category}
+              </option>
+            ))}
+            <option value="">Or enter custom job title...</option>
+          </select>
+          {jobQuery === '' && (
+            <input
+              type="text"
+              placeholder="e.g., dentist, electrician, bartender"
+              value={jobQuery}
+              onChange={(e) => setJobQuery(e.target.value)}
+              disabled={scraping}
+              className="custom-job-input"
+            />
+          )}
+          <button 
+            onClick={triggerJobScraping}
+            disabled={scraping}
+            className="scrape-button"
+          >
+            {scraping ? '⏳ Scraping...' : '🔄 Scrape New Jobs'}
+          </button>
+        </div>
       </div>
       
       {scrapeMessage && (

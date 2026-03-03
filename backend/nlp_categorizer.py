@@ -110,15 +110,67 @@ class JobCategorizer:
             ],
             'Sales': [
                 'sales', 'account executive', 'business development',
-                'account manager', 'sales engineer'
+                'account manager', 'sales engineer', 'sales representative'
             ],
             'Finance': [
                 'finance', 'accounting', 'financial analyst',
-                'accountant', 'controller', 'auditor'
+                'accountant', 'controller', 'auditor', 'cpa'
             ],
             'Security': [
                 'security', 'cybersecurity', 'information security',
                 'security engineer', 'penetration tester', 'infosec'
+            ],
+            'Healthcare': [
+                'nurse', 'nursing', 'physician', 'doctor', 'rn',
+                'clinical', 'medical', 'healthcare', 'hospital',
+                'therapeutic', 'patient care', 'practitioner'
+            ],
+            'Education': [
+                'teacher', 'instructor', 'educator', 'professor',
+                'academic', 'tutor', 'trainer', 'educational',
+                'school', 'university', 'teaching'
+            ],
+            'Manufacturing': [
+                'manufacturing', 'factory', 'production', 'fabrication',
+                'assembly', 'plant', 'machine operator', 'technician',
+                'forklift', 'welder', 'mechanical'
+            ],
+            'Hospitality': [
+                'hotel', 'restaurant', 'chef', 'cook', 'server',
+                'bartender', 'hospitality', 'housekeeping', 'front desk',
+                'concierge', 'catering', 'leisure'
+            ],
+            'Construction': [
+                'construction', 'carpenter', 'electrician', 'plumber',
+                'hvac', 'builder', 'contractor', 'surveyor',
+                'foreman', 'site manager', 'excavator'
+            ],
+            'Transportation': [
+                'driver', 'truck driver', 'delivery', 'logistics',
+                'warehouse', 'forklift', 'pilot', 'transportation',
+                'shipping', 'commercial driver', 'cdl'
+            ],
+            'Customer Service': [
+                'customer service', 'customer support', 'representative',
+                'call center', 'support specialist', 'help desk',
+                'customer care', 'service representative'
+            ],
+            'Human Resources': [
+                'hr', 'human resources', 'recruiter', 'recruiting',
+                'talent', 'payroll', 'benefits', 'compensation',
+                'employee relations'
+            ],
+            'Legal': [
+                'lawyer', 'attorney', 'legal', 'paralegal',
+                'law firm', 'compliance', 'contract', 'counsel'
+            ],
+            'Agriculture': [
+                'farm', 'farmer', 'agriculture', 'agricultural',
+                'livestock', 'crop', 'ranch', 'horticulture'
+            ],
+            'Retail': [
+                'retail', 'cashier', 'sales associate', 'store',
+                'merchandise', 'inventory', 'shop', 'clerk'
             ]
         }
     
