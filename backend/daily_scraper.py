@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 from data_processor import get_processor
 from models import TechNews, db
-from scraper import scrape_job_postings, scrape_tech_news
+from scraper import scrape_job_postings, scrape_tech_news, get_min_scrape_jobs
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,16 @@ def _run_daily_scrape(app):
 
         try:
             with app.app_context():
-                jobs = scrape_job_postings(query='software engineer', limit=100)
+                min_scrape_jobs = get_min_scrape_jobs()
+                daily_limit_raw = os.getenv('DAILY_SCRAPE_LIMIT', '100')
+                try:
+                    daily_limit = int(daily_limit_raw)
+                except (TypeError, ValueError):
+                    daily_limit = 100
+
+                effective_daily_limit = max(min_scrape_jobs, daily_limit)
+
+                jobs = scrape_job_postings(query='software engineer', limit=effective_daily_limit)
                 processor = get_processor()
                 job_stats = processor.process_batch_jobs(jobs, source='scheduler')
 
@@ -66,10 +75,12 @@ def _run_daily_scrape(app):
                 saved_news = _save_news_articles(news_articles)
 
                 logger.info(
-                    'Scheduled scrape complete: jobs total=%s processed=%s skipped=%s, news scraped=%s saved=%s',
+                    'Scheduled scrape complete: jobs total=%s processed=%s skipped=%s, min=%s daily_limit=%s, news scraped=%s saved=%s',
                     job_stats.get('total', 0),
                     job_stats.get('processed', 0),
                     job_stats.get('skipped', 0),
+                    min_scrape_jobs,
+                    effective_daily_limit,
                     len(news_articles),
                     saved_news
                 )

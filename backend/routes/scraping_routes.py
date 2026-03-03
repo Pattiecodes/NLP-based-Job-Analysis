@@ -3,10 +3,11 @@ Scraping Routes - Web scraping operations
 """
 from flask import Blueprint, jsonify, request
 from models import db, TechNews, JobPosting, JobSkill
-from scraper import scrape_tech_news, scrape_job_postings
+from scraper import scrape_tech_news, scrape_job_postings, get_min_scrape_jobs
 from data_processor import get_processor
 from datetime import datetime
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -66,20 +67,42 @@ def get_latest_news():
 def trigger_job_scraping():
     """Trigger job posting scraping with NLP processing"""
     try:
+        cron_secret = os.getenv('CRON_SECRET')
+        if cron_secret:
+            provided_secret = request.headers.get('X-Cron-Secret') or request.args.get('cron_secret')
+            if provided_secret != cron_secret:
+                return jsonify({'error': 'Unauthorized'}), 401
+
         # Get parameters
         query = request.json.get('query', 'software engineer') if request.json else 'software engineer'
-        limit = request.json.get('limit', 50) if request.json else 50
+        requested_limit = request.json.get('limit', 50) if request.json else 50
+        source = request.json.get('source', 'web_scraper') if request.json else 'web_scraper'
+        try:
+            requested_limit = int(requested_limit)
+        except (TypeError, ValueError):
+            requested_limit = 50
+
+        if source not in ['web_scraper', 'scheduler']:
+            source = 'web_scraper'
+
+        # Enforce at least configured minimum jobs per user request
+        min_scrape_jobs = get_min_scrape_jobs()
+        limit = max(min_scrape_jobs, requested_limit)
         
         # Scrape jobs
         jobs = scrape_job_postings(query=query, limit=limit)
         
         # Process jobs through NLP and ML pipeline
         processor = get_processor()
-        stats = processor.process_batch_jobs(jobs, source='web_scraper')
+        stats = processor.process_batch_jobs(jobs, source=source)
         
         return jsonify({
             'status': 'success',
             'message': f'Scraped {stats["total"]} jobs, processed {stats["processed"]} new jobs through NLP pipeline',
+            'requested_limit': requested_limit,
+            'min_scrape_jobs': min_scrape_jobs,
+            'effective_limit': limit,
+            'source': source,
             'scraped': stats['total'],
             'saved': stats['processed'],
             'skipped': stats['skipped']

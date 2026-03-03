@@ -5,13 +5,25 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import feedparser
-import time
+import os
 import logging
-import random
 import uuid
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+DEFAULT_MIN_SCRAPE_JOBS = 50
+
+
+def get_min_scrape_jobs() -> int:
+    """Get minimum number of jobs to scrape from environment."""
+    raw_value = os.getenv('MIN_SCRAPE_JOBS', str(DEFAULT_MIN_SCRAPE_JOBS))
+    try:
+        min_jobs = int(raw_value)
+    except (TypeError, ValueError):
+        min_jobs = DEFAULT_MIN_SCRAPE_JOBS
+
+    return max(1, min_jobs)
 
 
 class TechNewsScraper:
@@ -45,9 +57,9 @@ class TechNewsScraper:
                     'title': entry.get('title', 'No title'),
                     'link': entry.get('link', ''),
                     'summary': entry.get('summary', '')[:200],
-                    'published': entry.get('published', datetime.now().isoformat()),
+                        'published': entry.get('published', datetime.now().isoformat()),
                     'source': 'TechCrunch',
-                    'scraped_at': datetime.now().isoformat()
+                        'scraped_at': datetime.now().isoformat()
                 }
                 articles.append(article)
             
@@ -119,9 +131,9 @@ class TechNewsScraper:
                 'title': 'Tech Industry Hiring Trends 2026',
                 'link': '#',
                 'summary': 'Latest insights on hiring patterns in the technology sector...',
-                'published': datetime.now().isoformat(),
+                    'published': datetime.now(),
                 'source': 'Tech News',
-                'scraped_at': datetime.now().isoformat()
+                    'scraped_at': datetime.now()
             },
             {
                 'title': 'Top In-Demand Tech Skills',
@@ -239,9 +251,6 @@ class JobPostingScraper:
             'Collaborate with talented engineers on challenging projects that impact millions of users worldwide.'
         ]
         
-        # Generate unique timestamp for this batch
-        batch_id = int(time.time() * 1000)  # Millisecond timestamp for uniqueness
-        
         for i in range(count):
             job = {
                 'job_title': job_titles[i % len(job_titles)] + (' - ' + query if query else ''),
@@ -252,8 +261,8 @@ class JobPostingScraper:
                 'job_summary': summaries[i % len(summaries)],
                 'job_link': f'https://scraped.example.com/jobs/{str(uuid.uuid4())}',  # Completely unique UUID
                 'source': 'Web Scraper',
-                'scraped_at': datetime.now().isoformat(),
-                'posted_date': datetime.now().isoformat()
+                'scraped_at': datetime.now(),
+                'posted_date': datetime.now()
             }
             sample_jobs.append(job)
         
@@ -269,15 +278,23 @@ def scrape_tech_news():
 def scrape_job_postings(query='software engineer', limit=50):
     """Convenience function to scrape job postings"""
     scraper = JobPostingScraper()
+    try:
+        normalized_limit = int(limit)
+    except (TypeError, ValueError):
+        normalized_limit = DEFAULT_MIN_SCRAPE_JOBS
+
+    # Enforce at least configured minimum jobs per run/request
+    min_scrape_jobs = get_min_scrape_jobs()
+    normalized_limit = max(min_scrape_jobs, normalized_limit)
     
     # Try to scrape from Indeed
-    jobs = scraper.scrape_indeed(query=query, limit=limit)
+    jobs = scraper.scrape_indeed(query=query, limit=normalized_limit)
     
     # If scraping fails or returns few results, add sample jobs
-    if len(jobs) < 10:
-        jobs.extend(scraper.scrape_sample_jobs(count=max(10, limit - len(jobs)), query=query))
+    if len(jobs) < normalized_limit:
+        jobs.extend(scraper.scrape_sample_jobs(count=normalized_limit - len(jobs), query=query))
     
-    return jobs[:limit]
+    return jobs[:normalized_limit]
 
 
 if __name__ == '__main__':

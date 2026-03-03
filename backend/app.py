@@ -11,7 +11,10 @@ from daily_scraper import start_daily_scraper
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=['http://localhost:3000'])
+
+frontend_origins = os.getenv('FRONTEND_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000')
+allowed_origins = [origin.strip() for origin in frontend_origins.split(',') if origin.strip()]
+CORS(app, supports_credentials=True, origins=allowed_origins)
 
 # Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///job_skills_nlp.db')
@@ -74,4 +77,6 @@ if __name__ == '__main__':
         start_daily_scraper(app)
     
     # Run application
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    debug_mode = os.getenv('FLASK_ENV', 'development') == 'development'
+    port = int(os.getenv('PORT', '5000'))
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)

@@ -1,0 +1,26 @@
+name: Midnight Scrape
+
+on:
+  schedule:
+    # 16:00 UTC = 12:00 AM (UTC+8)
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger-scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger backend scraping endpoint
+        env:
+          SCRAPE_API_URL: ${{ secrets.SCRAPE_API_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$SCRAPE_API_URL" ]; then
+            echo "SCRAPE_API_URL secret is not set"
+            exit 1
+          fi
+
+          curl -sS -X POST "$SCRAPE_API_URL/api/scraping/jobs/trigger" \
+            -H "Content-Type: application/json" \
+            -H "X-Cron-Secret: $CRON_SECRET" \
+            -d '{"query":"software engineer","limit":100,"source":"scheduler"}'
