@@ -60,6 +60,49 @@ def health_check():
         'version': '1.0.0'
     })
 
+# Temporary data seeding endpoint (delete after use)
+@app.route('/api/seed-data', methods=['POST'])
+def seed_data():
+    """Seed database with existing analysis data - TEMPORARY FOR SETUP"""
+    try:
+        from models import JobPosting, TrendingSkill
+        import pandas as pd
+        
+        # Load trending skills
+        top_skills_df = pd.read_csv('output/top_skills.csv')
+        for _, row in top_skills_df.iterrows():
+            skill = TrendingSkill(
+                skill_name=row['Skill'],
+                mention_count=int(row['Count']),
+                is_technical=True
+            )
+            db.session.add(skill)
+        
+        # Load processed jobs (limit to 500 for speed)
+        jobs_df = pd.read_csv('output/processed_jobs.csv').head(500)
+        for _, row in jobs_df.iterrows():
+            job = JobPosting(
+                job_title=row.get('job_title', 'Unknown'),
+                company=row.get('company', 'Unknown'),
+                job_location=row.get('job_location', ''),
+                job_description=row.get('job_description', ''),
+                salary_range=row.get('salary_range', ''),
+                required_skills=row.get('required_skills', ''),
+                category=row.get('category', 'Other'),
+                scraped_date=datetime.utcnow()
+            )
+            db.session.add(job)
+        
+        db.session.commit()
+        return jsonify({
+            'message': 'Data seeded successfully!',
+            'skills_loaded': len(top_skills_df),
+            'jobs_loaded': len(jobs_df)
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # Root endpoint
 @app.route('/')
 def index():
