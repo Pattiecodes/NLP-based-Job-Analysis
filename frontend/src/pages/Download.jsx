@@ -43,14 +43,6 @@ function Download() {
           url = '/api/download/analysis';
           filename = 'analysis_results.csv';
           break;
-        case 'clusters':
-          url = '/api/download/clusters';
-          filename = 'clusters.csv';
-          break;
-        case 'topics':
-          url = '/api/download/topics';
-          filename = 'topics.csv';
-          break;
         default:
           return;
       }
@@ -93,24 +85,10 @@ function Download() {
     },
     {
       id: 'analysis',
-      title: 'Complete Analysis Results',
-      description: 'Download full analysis including clusters, topics, and TF-IDF scores',
+      title: 'NLP Analysis Results',
+      description: 'Download jobs with AI categorization, extracted skills, and NLP processing results',
       icon: FiFileText,
-      count: 'Full'
-    },
-    {
-      id: 'clusters',
-      title: 'Job Clusters',
-      description: 'Download clustering results with keywords and job assignments',
-      icon: FiDatabase,
-      count: '6'
-    },
-    {
-      id: 'topics',
-      title: 'Topic Modeling Results',
-      description: 'Download LDA topic modeling results with keywords and weights',
-      icon: FiFileText,
-      count: '8'
+      count: stats?.total_jobs || 0
     }
   ];
 
@@ -172,9 +150,9 @@ function Download() {
         <h3>About the Data</h3>
         <ul>
           <li>All files are exported in CSV format for easy import into Excel, R, Python, or other analysis tools</li>
-          <li>Job postings data includes cleaned text, extracted skills, and metadata</li>
-          <li>Analysis results contain TF-IDF scores, cluster assignments, and topic distributions</li>
-          <li>Data is based on {stats?.total_jobs?.toLocaleString() || 0} LinkedIn job postings</li>
+          <li>Job postings data includes title, company, location, job level, type, category, and data source</li>
+          <li>Trending skills are automatically filtered to exclude meaningless words and show only relevant skills</li>
+          <li>Data is based on {stats?.total_jobs?.toLocaleString() || 0} job postings across multiple industries</li>
         </ul>
       </div>
     </div>

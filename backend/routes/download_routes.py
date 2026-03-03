@@ -11,27 +11,28 @@ def download_jobs():
     try:
         jobs = JobPosting.query.all()
         
+        if not jobs:
+            return {'error': 'No job postings found'}, 404
+        
         # Create CSV in memory
         output = io.StringIO()
         writer = csv.writer(output)
         
         # Write header
-        writer.writerow(['ID', 'Title', 'Company', 'Location', 'Job Level', 'Job Type', 'Job Skills', 'Summary'])
+        writer.writerow(['ID', 'Title', 'Company', 'Location', 'Job Level', 'Job Type', 'Job Category', 'Data Source', 'Posted Date'])
         
         # Write data
         for job in jobs:
-            # Get skills as comma-separated string
-            skill_names = ', '.join([skill.skill_name for skill in job.skills]) if job.skills else ''
-            
             writer.writerow([
                 job.id,
-                job.job_title,
-                job.company,
+                job.job_title or '',
+                job.company or '',
                 job.job_location or '',
                 job.job_level or '',
                 job.job_type or '',
-                skill_names,
-                job.job_summary or ''
+                job.job_category or '',
+                job.data_source or '',
+                job.posted_date.strftime('%Y-%m-%d') if job.posted_date else ''
             ])
         
         # Create response
@@ -48,7 +49,22 @@ def download_jobs():
 def download_skills():
     """Download top trending skills as CSV"""
     try:
-        skills = TrendingSkill.query.order_by(TrendingSkill.mention_count.desc()).all()
+        # Words to exclude (same as dashboard)
+        exclude_words = {
+            'benefits', 'compensation', 'employee', 'employees', 'experience',
+            'team', 'leadership', 'management', 'ability', 'skills', 'skill',
+            'training', 'knowledge', 'understanding', 'background',
+            'degree', 'certificate', 'certification', 'years', 'year',
+            'required', 'preferred', 'strong', 'excellent', 'good'
+        }
+        
+        all_skills = TrendingSkill.query.order_by(TrendingSkill.mention_count.desc()).all()
+        
+        # Filter out meaningless words
+        skills = [s for s in all_skills if s.skill_name.lower() not in exclude_words]
+        
+        if not skills:
+            return {'error': 'No skills found'}, 404
         
         # Create CSV in memory
         output = io.StringIO()
@@ -78,43 +94,54 @@ def download_skills():
 
 @download_routes.route('/api/download/analysis', methods=['GET'])
 def download_analysis():
-    """Download all analysis results as CSV"""
+    """Download NLP-processed job analysis results as CSV"""
     try:
-        results = AnalysisResult.query.all()
+        # Get all jobs with their NLP analysis results
+        jobs = JobPosting.query.all()
+        
+        if not jobs:
+            return {'error': 'No analysis results found'}, 404
         
         # Create CSV in memory
         output = io.StringIO()
         writer = csv.writer(output)
         
-        # Write header
-        writer.writerow(['ID', 'Analysis Type', 'Model Version', 'Created At', 'Data Summary'])
+        # Write header - comprehensive NLP analysis results
+        writer.writerow([
+            'Job ID', 'Title', 'Company', 'Location', 
+            'NLP Category', 'Job Type', 'Job Level', 
+            'Data Source', 'Cluster ID', 'Posted Date', 'Scraped At',
+            'Extracted Skills Count'
+        ])
         
-        # Write data
-        for result in results:
-            # Create summary of result data
-            if result.analysis_type == 'clustering':
-                summary = f"Clusters: {result.result_data.get('n_clusters', 'N/A')}"
-            elif result.analysis_type == 'topic_modeling':
-                summary = f"Topics: {result.result_data.get('n_topics', 'N/A')}"
-            else:
-                summary = 'Other analysis'
+        # Write data - showing NLP analysis results
+        for job in jobs:
+            skill_count = len(job.skills) if job.skills else 0
             
             writer.writerow([
-                result.id,
-                result.analysis_type,
-                result.model_version or '',
-                result.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                summary
+                job.id,
+                job.job_title or '',
+                job.company or '',
+                job.job_location or '',
+                job.job_category or 'Uncategorized',  # NLP categorization
+                job.job_type or '',
+                job.job_level or '',
+                job.data_source or '',
+                job.cluster_id if job.cluster_id is not None else 'N/A',
+                job.posted_date.strftime('%Y-%m-%d') if job.posted_date else '',
+                job.scraped_at.strftime('%Y-%m-%d %H:%M:%S') if job.scraped_at else '',
+                skill_count  # Number of skills extracted by NLP
             ])
         
         # Create response
         output.seek(0)
         response = make_response(output.getvalue())
-        response.headers['Content-Disposition'] = 'attachment; filename=analysis_results.csv'
+        response.headers['Content-Disposition'] = 'attachment; filename=nlp_analysis_results.csv'
         response.headers['Content-Type'] = 'text/csv'
         
         return response
     except Exception as e:
+        print(f"Error in download_analysis: {str(e)}")
         return {'error': str(e)}, 500
 
 @download_routes.route('/api/download/clusters', methods=['GET'])
@@ -126,6 +153,9 @@ def download_clusters():
         if not clustering_result:
             return {'error': 'No clustering results found'}, 404
         
+        if not clustering_result.result_data or 'clusters' not in clustering_result.result_data:
+            return {'error': 'Invalid clustering data format'}, 500
+        
         # Create CSV in memory
         output = io.StringIO()
         writer = csv.writer(output)
@@ -135,8 +165,13 @@ def download_clusters():
         
         # Write data
         clusters = clustering_result.result_data.get('clusters', [])
+        
+        if not clusters:
+            return {'error': 'No clusters found in results'}, 404
+        
         for cluster in clusters:
-            keywords_str = ', '.join(cluster.get('top_keywords', []))
+            keywords = cluster.get('top_keywords', [])
+            keywords_str = ', '.join(keywords) if isinstance(keywords, list) else str(keywords)
             writer.writerow([
                 cluster.get('cluster_id', ''),
                 cluster.get('job_count', 0),
@@ -151,6 +186,7 @@ def download_clusters():
         
         return response
     except Exception as e:
+        print(f"Error in download_clusters: {str(e)}")
         return {'error': str(e)}, 500
 
 @download_routes.route('/api/download/topics', methods=['GET'])
@@ -162,6 +198,9 @@ def download_topics():
         if not topic_result:
             return {'error': 'No topic modeling results found'}, 404
         
+        if not topic_result.result_data or 'topics' not in topic_result.result_data:
+            return {'error': 'Invalid topic modeling data format'}, 500
+        
         # Create CSV in memory
         output = io.StringIO()
         writer = csv.writer(output)
@@ -171,8 +210,13 @@ def download_topics():
         
         # Write data
         topics = topic_result.result_data.get('topics', [])
+        
+        if not topics:
+            return {'error': 'No topics found in results'}, 404
+        
         for topic in topics:
-            keywords_str = ', '.join(topic.get('keywords', []))
+            keywords = topic.get('keywords', [])
+            keywords_str = ', '.join(keywords) if isinstance(keywords, list) else str(keywords)
             writer.writerow([
                 topic.get('topic_id', ''),
                 topic.get('weight', 0),
@@ -187,4 +231,5 @@ def download_topics():
         
         return response
     except Exception as e:
+        print(f"Error in download_topics: {str(e)}")
         return {'error': str(e)}, 500

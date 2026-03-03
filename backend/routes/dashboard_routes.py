@@ -12,10 +12,22 @@ bp = Blueprint('dashboard', __name__, url_prefix='/api/dashboard')
 @bp.route('/stats', methods=['GET'])
 def get_dashboard_stats():
     """Get overall dashboard statistics"""
+    # Words to exclude from skill count (same as trending skills)
+    exclude_words = {
+        'benefits', 'compensation', 'employee', 'employees', 'experience',
+        'team', 'leadership', 'management', 'ability', 'skills', 'skill',
+        'training', 'knowledge', 'understanding', 'background',
+        'degree', 'certificate', 'certification', 'years', 'year',
+        'required', 'preferred', 'strong', 'excellent', 'good'
+    }
+    
     total_jobs = db.session.query(func.count(JobPosting.id)).scalar()
     total_companies = db.session.query(func.count(func.distinct(JobPosting.company))).scalar()
     total_locations = db.session.query(func.count(func.distinct(JobPosting.job_location))).scalar()
-    total_skills = db.session.query(func.count(TrendingSkill.id)).scalar()
+    
+    # Count only valid skills (exclude meaningless words)
+    all_skills = TrendingSkill.query.all()
+    total_skills = len([s for s in all_skills if s.skill_name.lower() not in exclude_words])
     
     return jsonify({
         'total_jobs': total_jobs or 0,
