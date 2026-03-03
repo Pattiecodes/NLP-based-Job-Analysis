@@ -60,19 +60,6 @@ def health_check():
         'version': '1.0.0'
     })
 
-# Temporary database initialization endpoint (delete this after first deployment)
-@app.route('/api/init-db', methods=['POST'])
-def init_database():
-    """Initialize database tables - TEMPORARY FOR SETUP"""
-    try:
-        db.create_all()
-        return jsonify({
-            'message': 'Database tables created successfully!',
-            'tables': ['users', 'job_postings', 'job_skills', 'trending_skills', 'analysis_results', 'upload_history', 'tech_news']
-        }), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 # Root endpoint
 @app.route('/')
 def index():
