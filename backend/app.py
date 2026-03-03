@@ -68,6 +68,11 @@ def seed_data():
         from models import TrendingSkill, JobPosting
         import pandas as pd
         
+        # Clear existing data first
+        db.session.query(JobPosting).delete()
+        db.session.query(TrendingSkill).delete()
+        db.session.commit()
+        
         # Load trending skills
         top_skills_df = pd.read_csv('output/top_skills.csv')
         for _, row in top_skills_df.iterrows():
