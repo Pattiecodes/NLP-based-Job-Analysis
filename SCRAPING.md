@@ -177,7 +177,7 @@ def scheduled_news_scrape():
 
 ## Future Enhancements
 
-1. **More Sources:** Add LinkedIn, Glassdoor, Remote.co
+1. **More Sources:** Add LinkedIn, Glassdoor, Remote.c
 2. **Scheduling:** Celery tasks for automatic scraping
 3. **NLP Analysis:** Analyze scraped content for insights
 4. **Filtering:** User-defined filters for news/jobs

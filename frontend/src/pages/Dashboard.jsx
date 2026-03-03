@@ -13,6 +13,9 @@ function Dashboard() {
   const [topSkills, setTopSkills] = useState([])
   const [distribution, setDistribution] = useState({})
   const [loading, setLoading] = useState(true)
+  const [scraping, setScraping] = useState(false)
+  const [scrapeMessage, setScrapeMessage] = useState('')
+  const [scrapeError, setScrapeError] = useState('')
   
   useEffect(() => {
     fetchDashboardData()
@@ -39,6 +42,32 @@ function Dashboard() {
     }
   }
   
+  const triggerJobScraping = async () => {
+    try {
+      setScraping(true)
+      setScrapeError('')
+      setScrapeMessage('Scraping jobs, this may take a few minutes...')
+      
+      const response = await axios.post('/api/scraping/jobs/trigger', {
+        query: 'software engineer',
+        limit: 100
+      })
+      
+      setScrapeMessage(`✓ Success! ${response.data.message}`)
+      
+      // Refresh dashboard data after scraping
+      setTimeout(() => {
+        fetchDashboardData()
+        setScrapeMessage('')
+      }, 2000)
+    } catch (error) {
+      console.error('Error scraping jobs:', error)
+      setScrapeError(`✗ Error: ${error.response?.data?.error || error.message}`)
+    } finally {
+      setScraping(false)
+    }
+  }
+  
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d']
   
   if (loading) {
@@ -47,7 +76,23 @@ function Dashboard() {
   
   return (
     <div className="dashboard">
-      <h1>Dashboard Overview</h1>
+      <div className="dashboard-header">
+        <h1>Dashboard Overview</h1>
+        <button 
+          onClick={triggerJobScraping}
+          disabled={scraping}
+          className="scrape-button"
+        >
+          {scraping ? '⏳ Scraping...' : '🔄 Scrape New Jobs'}
+        </button>
+      </div>
+      
+      {scrapeMessage && (
+        <div className="message success-message">{scrapeMessage}</div>
+      )}
+      {scrapeError && (
+        <div className="message error-message">{scrapeError}</div>
+      )}
       
       {/* Stats Cards */}
       <div className="stats-grid">
