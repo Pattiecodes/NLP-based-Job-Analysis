@@ -351,15 +351,24 @@ class JobCategorizer:
             'campaign management', 'public relations', 'presentation skills',
             
             # Human Resources
-            'recruiting', 'talent management', 'compensation', 'benefits',
-            'employee relations', 'payroll', 'training', 'hr systems',
-            'compliance', 'employee engagement', 'onboarding',
+            'recruiting', 'talent management', 'payroll', 'training',
+            'hr systems', 'compliance', 'employee engagement', 'onboarding',
+            'talent acquisition', 'staffing', 'workforce planning',
             
             # Legal & Compliance
             'legal research', 'contract law', 'compliance', 'document review',
             'legal writing', 'paralegal', 'litigation support',
             'regulatory knowledge', 'contract drafting'
         ]
+        
+        # Words to exclude - not real skills
+        exclude_words = {
+            'benefits', 'compensation', 'employee', 'employees', 'experience',
+            'team', 'leadership', 'management', 'ability', 'skills', 'skill',
+            'training', 'knowledge', 'understanding', 'background',
+            'degree', 'certificate', 'certification', 'years', 'year',
+            'required', 'preferred', 'strong', 'excellent', 'good'
+        }
         
         text_lower = text.lower()
         found_skills = []
@@ -368,9 +377,12 @@ class JobCategorizer:
             # Use word boundary matching for better accuracy
             pattern = r'\b' + re.escape(skill.lower()) + r'\b'
             if re.search(pattern, text_lower):
-                found_skills.append(skill.title())
+                # Don't add if it's an excluded word
+                if skill.lower() not in exclude_words:
+                    found_skills.append(skill.title())
         
-        return found_skills
+        # Remove duplicates and return
+        return list(set(found_skills))
     
     def analyze_job(self, job_data: Dict) -> Dict:
         """
