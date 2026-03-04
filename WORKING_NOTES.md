@@ -15,7 +15,7 @@
 - **Lesson**: Millisecond timestamps aren't sufficient for rapid consecutive calls; UUIDs are the answer
 
 ### Minimum Scrape Floor
-- **Why**: User requested "at least 50 jobs per request"
+- **Why**: To keep at least a good amount of scrape job numbers (50)
 - **Implementation**: Added configurable `MIN_SCRAPE_JOBS` env var, enforced in scraper logic and API route
 - **Benefit**: Can adjust minimum later (50 → 100 → 200) without code changes
 
@@ -33,7 +33,7 @@
 
 ### Why Render (Free Tier)
 - Static sites (frontend) always on, no cold start
-- Web services (backend) free but sleep after inactivity
+- Web services (backend) free but sleep after inactivity ------- Takes a while to start again when inactive for too long, about 50~ seconds delay accdg to Render
 - PostgreSQL free tier available
 - GitHub integration simple
 
