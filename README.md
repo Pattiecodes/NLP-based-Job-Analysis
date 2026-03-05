@@ -19,7 +19,6 @@ An intelligent web application that analyzes job postings using Natural Language
 - **Auto-Categorization**: Every job automatically processed through NLP pipeline
 
 ### User Experience
-- **Job Search**: Advanced search with filters (level, type, location, category)
 - **Data Visualization**: Interactive charts using Recharts with 24-color palette
 - **Responsive UI**: Clean interface with sidebar navigation
 - **Optimized Performance**: Fast password hashing for quick sign-in
@@ -405,4 +404,5 @@ This is intentional and correct — the application automatically uses PostgreSQ
 ## 📞 Support
 
 For issues and questions, please open an issue on GitHub or contact me via deocampojamespatrickcode@gmail.com
+
 
