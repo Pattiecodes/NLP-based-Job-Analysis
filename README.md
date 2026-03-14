@@ -260,8 +260,7 @@ If Render's free tier has issues, you can deploy the frontend to GitHub Pages:
 The build automatically uses:
 - Root path (`/`) for Render deployment (default)
 - Subpath (`/NLP-based-Job-Analysis/`) for GitHub Pages
-
-Your app will be available at: `https://yourusername.github.io/NLP-based-Job-Analysis/`
+`
 
 ## 📊 API Endpoints
 
