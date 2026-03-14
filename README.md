@@ -80,70 +80,98 @@ ITS120L - Project/
 
 ## 🚀 Getting Started
 
+### Localhost Quick Start (Windows, tested)
+
+Use this exact flow for local testing.
+
+1. **Open 2 terminals** at the project root.
+2. **Backend terminal**
+    ```bash
+    cd backend
+   py -3.12 -m venv venv
+   venv\Scripts\activate
+   pip install -r requirements.txt
+   set DISABLE_DAILY_SCRAPER=1
+   python app.py
+    ```
+    Expected: Flask shows `Running on http://127.0.0.1:5000`
+3. **Frontend terminal**
+    ```bash
+    cd frontend
+   npm install
+    npm.cmd run dev -- --host 127.0.0.1 --port 3000 --strictPort
+    ```
+    Expected: Vite shows `Local: http://127.0.0.1:3000/`
+4. Open `http://127.0.0.1:3000` in your browser.
+
+### If Port 3000 or 5000 Is Already In Use (Windows)
+
+Run this once before starting servers:
+
+```powershell
+Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+   Where-Object { $_.LocalPort -in 3000,5000 } |
+   Select-Object -Unique OwningProcess |
+   ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+```
+
+Then start backend and frontend again.
+
+### Backend Environment Notes
+
+- For best compatibility across devices, use **Python 3.11 or 3.12** for backend setup.
+- `DATABASE_URL` is optional for local smoke testing because the app falls back to local SQLite when unset.
+- If needed, disable the background daily scraper in local testing:
+   ```powershell
+   $env:DISABLE_DAILY_SCRAPER='1'
+   ```
+
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.11 or 3.12 recommended
 - Node.js 18+
 - PostgreSQL 14+
 - Git LFS (for large dataset files)
 
-### Backend Setup
+PostgreSQL is optional for local testing. If `DATABASE_URL` is not set to PostgreSQL, the backend uses local SQLite.
 
-1. **Navigate to backend directory**
+### Localhost Quick Start (For Any Device)
+
+1. Clone and pull large files:
+   ```bash
+   git clone <repo-url>
+   cd "ITS120L - Project"
+   git lfs install
+   git lfs pull
+   ```
+
+2. Start backend:
    ```bash
    cd backend
-   ```
-
-2. **Create virtual environment**
-   ```bash
+   # Use Python 3.11 or 3.12
    python -m venv venv
    venv\Scripts\activate  # Windows
-   source venv/bin/activate  # macOS/Linux
-   ```
-
-3. **Install dependencies**
-   ```bash
+   # source venv/bin/activate  # macOS/Linux
    pip install -r requirements.txt
-   ```
-
-4. **Configure environment variables**
-   
-   Edit `backend/.env` and update with your database credentials:
-   ```bash
-   DATABASE_URL=postgresql://username:password@localhost:5432/job_skills_nlp
-   SECRET_KEY=your-secret-key-here
-   ```
-
-5. **Initialize database**
-   ```bash
-   python init_db.py
-   ```
-
-6. **Run Flask server**
-   ```bash
+   # Optional for local-only run:
+   # set DISABLE_DAILY_SCRAPER=1  # Windows
+   # export DISABLE_DAILY_SCRAPER=1  # macOS/Linux
+   # Optional if you want DB seed on first run:
+   # python init_db.py
+   # python seed_data.py
    python app.py
    ```
-   
-   Backend will be running at `http://localhost:5000`
 
-### Frontend Setup
-
-1. **Navigate to frontend directory**
+3. Start frontend in another terminal:
    ```bash
    cd frontend
-   ```
-
-2. **Install dependencies**
-   ```bash
    npm install
+   npm run dev -- --host 127.0.0.1 --port 3000 --strictPort
    ```
 
-3. **Run development server**
-   ```bash
-   npm run dev
-   ```
-   
-   Frontend will be running at `http://localhost:3000`
+4. Open `http://127.0.0.1:3000`.
+
+If dashboard data is empty on a fresh machine, run `python backend/seed_data.py` once.
 
 ## 🔧 Configuration
 
@@ -169,6 +197,7 @@ DATABASE_URL=postgresql://username:password@localhost:5432/job_skills_nlp
 FLASK_ENV=development
 SECRET_KEY=your-secret-key
 UPLOAD_FOLDER=uploads
+FRONTEND_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173
 REDIS_URL=redis://localhost:6379/0  # Optional for async tasks
 MIN_SCRAPE_JOBS=50  # Minimum jobs saved per manual request and daily scrape
 DAILY_SCRAPE_LIMIT=100  # Target jobs for midnight scheduler (must be >= MIN_SCRAPE_JOBS)
